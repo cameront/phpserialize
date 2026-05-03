@@ -15,6 +15,9 @@ type MarshalOptions struct {
 	// If this is true, then all struct names will be stripped from objects
 	// and "stdClass" will be used instead. The default value is false.
 	OnlyStdClass bool
+	// If this is true, then the single-quote character will be escaped in strings.
+	// The default value is true.
+	EscapeSingleQuote bool
 }
 
 // DefaultMarshalOptions will create a new instance of MarshalOptions with
@@ -22,6 +25,7 @@ type MarshalOptions struct {
 func DefaultMarshalOptions() *MarshalOptions {
 	options := new(MarshalOptions)
 	options.OnlyStdClass = false
+	options.EscapeSingleQuote = true
 
 	return options
 }
@@ -97,10 +101,12 @@ func MarshalFloat(value float64, bitSize int) []byte {
 //
 // One important distinction is that PHP stores binary data in strings. See
 // MarshalBytes for more information.
-func MarshalString(value string) []byte {
-	// As far as I can tell only the single-quote is escaped. Not even the
-	// backslash itself is escaped. Weird. See escapeTests for more information.
-	value = strings.Replace(value, "'", "\\'", -1)
+func MarshalString(value string, options *MarshalOptions) []byte {
+	if options.EscapeSingleQuote {
+		// As far as I can tell only the single-quote is escaped. Not even the
+		// backslash itself is escaped. Weird. See escapeTests for more information.
+		value = strings.Replace(value, "'", "\\'", -1)
+	}
 
 	return []byte(fmt.Sprintf("s:%d:\"%s\";", len(value), value))
 }
@@ -176,7 +182,7 @@ func MarshalStruct(input interface{}, options *MarshalOptions) ([]byte, error) {
 		} else if fieldName == "" {
 			fieldName = lowerCaseFirstLetter(typeOfValue.Field(i).Name)
 		}
-		buffer.Write(MarshalString(fieldName))
+		buffer.Write(MarshalString(fieldName, options))
 
 		m, err := Marshal(f.Interface(), options)
 		if err != nil {
@@ -235,7 +241,7 @@ func Marshal(input interface{}, options *MarshalOptions) ([]byte, error) {
 		return MarshalFloat(value.Float(), 64), nil
 
 	case reflect.String:
-		return MarshalString(value.String()), nil
+		return MarshalString(value.String(), options), nil
 
 	case reflect.Slice:
 		return marshalSlice(value.Interface(), options)

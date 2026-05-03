@@ -239,3 +239,21 @@ func TestMarshalEscape(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshalSkipEscape(t *testing.T) {
+	input := "it's time"
+	options := phpserialize.DefaultMarshalOptions()
+
+	escapeResult := phpserialize.MarshalString(input, options)
+	escapeExpected := "s:10;it\\'s time"
+	if escapeResult != escapeExpected {
+		t.Errorf("Expected:\n  %#%s\nGot:\n %#s", escapeExpected, escapeResult)
+	}
+
+	options.EscapeSingleQuote = false
+	noEscapeResult := phpserialize.MarshalString(input, options)
+	noEscapeExpected := "s:9;it's time"
+	if noEscapeResult != noEscapeExpected {
+		t.Errorf("Expected:\n  %#%s\nGot:\n %#s", noEscapeExpected, escapeResult)
+	}
+}
